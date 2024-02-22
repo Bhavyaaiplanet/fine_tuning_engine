@@ -2,41 +2,40 @@ from django.shortcuts import render
 from .models import userInput
 from .forms import cloudForm
 
-from azure.identity import ClientSecretCredential , InteractiveBrowserCredential
+from azure.cli.core import get_default_cli
 # Create your views here.
 
 class cloudLogin():
-    def azureLogin(client_id=None , tenant_id=None , client_secret=None , subscription_id=None):
-        '''
-        creds = ClientSecretCredential(
-            client_id=client_id,
-            tenant_id=tenant_id,
-            client_secret=client_secret,
-        )
-        '''
-        creds = InteractiveBrowserCredential()
-        
+    def azureLogin(self , app_id=None , tenant_id=None , password=None):
 
+        az_cli = get_default_cli()
+        az_cli.invoke(['login' , '--service-principal' , '-u' , str(app_id) , '-p' , str(password) ,'--tenant' , str(tenant_id)])
+
+    def gcpLogin(self):
+        pass
+    
+    def awsLogin(self):
+        pass
 
 def cloudSelect(request, *args , **kwargs):
     init = {
             'cloud_select':'select_your_cloud'
         }
 
-    form = cloudForm(request.POST or None , initial=init)
+    form = cloudForm(request.POST or None)
     
     if form.is_valid():
         inst = form.instance
         cloud_name = inst.cloud_name
-        print(cloud_name)
+
         if cloud_name=='Azure':
-            cloudLogin.azureLogin()
-        '''
+            cloudLogin.azureLogin(app_id=inst.app_id , tenant_id=inst.tenant_id , password=inst.password)
+        
         elif cloud_name=='Google cloud':
-            return render()
+            pass
         elif cloud_name=='AWS':
-            return render()
-        '''
+            pass
+        
 
     form = cloudForm()
     
