@@ -1,5 +1,5 @@
 from django import forms 
-from .models import cloudSelect,userInput
+from .models import cloudSelect,cloudConfigModel
 
 class cloudForm(forms.ModelForm):
     class Meta:
@@ -14,5 +14,5 @@ class cloudForm(forms.ModelForm):
 
 class configForm(forms.ModelForm):
     class Meta:
-        model = userInput
+        model = cloudConfigModel
         fields = '__all__'

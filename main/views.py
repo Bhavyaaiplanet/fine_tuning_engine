@@ -1,7 +1,6 @@
 from django.shortcuts import render,redirect
-from .models import userInput
 from .forms import cloudForm,configForm
-
+from .sky_funcs import vmStartAzure
 from azure.cli.core import get_default_cli
 # Create your views here.
 
@@ -30,8 +29,6 @@ def cloudSelect(request, *args , **kwargs):
             a_l= cloudLogin().azureLogin(app_id=inst.app_id , tenant_id=inst.tenant_id , password=inst.password)
             if a_l == 0:
                 return redirect('./config')
-               # print(e)
-
 
         elif cloud_name=='Google cloud':
             pass
@@ -49,6 +46,7 @@ def cloudConfig(request , *args , **kwargs):
 
     if form.is_valid():
         inst = form.instance
+        vmStartAzure(acc_type=inst.acc_type , n_acc=inst.n_acc , n_cpus=inst.n_cpus , n_memory=inst.n_memory)
 
     form = configForm()
     return render(request , 'cloud_config_form.html' , {'form':form})
