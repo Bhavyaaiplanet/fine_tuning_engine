@@ -1,8 +1,40 @@
-import sky
+import sky 
+from .sky_launch import train_task
 
-def vmStartAzure(cloud=sky.Azure() ,acc_type=None , n_cpus=None,n_memory=None , n_acc=None):
-
-    task = sky.Task(run='echo hello world')
-    task.set_resources(sky.Resources(cloud=cloud , accelerators={str(acc_type):n_acc} , memory=str(n_memory) , cpus=str(n_cpus)))
-
-    sky.launch(task , down=True)
+def train(
+        model_type,
+        finetune_data,
+        checkpoint_bucket,
+        checkpoint_store,
+        name,
+        cluster,
+        cloud,
+        envs,
+        region,
+        zone,
+        accelerator,
+        detach_setup,
+        detach_run,
+        no_setup,
+):
+    
+    task = train_task(
+        model_type,
+        checkpoint_bucket=checkpoint_bucket,
+        checkpoint_store=checkpoint_store,
+        name=name,
+        finetune_data=finetune_data,
+        cloud=cloud,
+        accelerator=accelerator,
+        envs=envs,
+        region=region,
+        zone=zone,
+    )
+    
+    sky.launch(
+        task,
+        cluster_name=cluster,
+        detach_setup=detach_setup,
+        detach_run=detach_run,
+        no_setup=no_setup,
+    )
