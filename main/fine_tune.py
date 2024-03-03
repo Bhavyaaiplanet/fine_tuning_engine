@@ -1,7 +1,16 @@
 from transformers import AutoModelForCausalLM , AutoTokenizer , BitsAndBytesConfig
 import torch
 
-def get_model_and_tokenizer(pretrained_model_path , use_4bit , bnb_4bit_compute_dtype , bnb_4bit_quant_type , use_nested_quant , device_map):
+def get_model_and_tokenizer(
+        
+        pretrained_model_path , 
+        use_4bit , 
+        bnb_4bit_compute_dtype , 
+        bnb_4bit_quant_type , 
+        use_nested_quant , 
+        device_map,
+
+        ):
 
     compute_type = getattr(torch , bnb_4bit_compute_dtype)
     bnb_config = BitsAndBytesConfig(

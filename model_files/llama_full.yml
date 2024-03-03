@@ -1,0 +1,127 @@
+resources:
+  accelerators: A100-80GB:4
+  disk_size: 1000
+  disk_tier: high
+
+num_nodes: 1
+
+file_mounts:
+  /artifacts:
+    name: ${MY_BUCKET} # Name of the bucket.
+    mode: MOUNT
+    store: ${BUCKET_TYPE} # s3, gcs, r2, ibm
+
+setup: |
+  # Setup the environment
+  conda activate chatbot
+  if [ $? -ne 0 ]; then
+    conda create -n chatbot python=3.10 -y
+    conda activate chatbot
+  fi
+
+  # Install huggingface with the LLaMA commit
+  pip install protobuf
+  git clone https://github.com/huggingface/transformers.git
+  cd transformers
+  pip install .
+  cd -
+
+  # Install fastchat
+  conda install -y -c conda-forge accelerate
+  pip install sentencepiece
+
+  # Install pytorch
+  pip install torch==2.0.1 --extra-index-url https://download.pytorch.org/whl/cu116
+  git clone https://github.com/lm-sys/FastChat.git
+  cd FastChat
+  git checkout cbf285360e8e809a316c88a8377c1bb0f0c770bc
+  pip install -e .
+  if [ $USE_FLASH_ATTN -eq 1 ]; then
+    pip install packaging
+    pip install ninja
+    pip install flash-attn --no-build-isolation
+  fi
+
+  sudo apt update
+  sudo apt install -y rclone
+
+  if [[ "$HF_TOKEN" != "" ]];
+  then
+    pip install --upgrade huggingface_hub
+    huggingface-cli login --token $HF_TOKEN
+  fi
+
+run: |
+  cd FastChat
+  conda activate chatbot
+  USE_FLASH_ATTN=${USE_FLASH_ATTN:-0}
+  if [ $USE_FLASH_ATTN -eq 1 ]; then
+    TRAIN_SCRIPT=fastchat/train/train_mem.py
+    USE_FLASH_SUFFIX="-flash"
+  else
+    TRAIN_SCRIPT=fastchat/train/train.py
+    USE_FLASH_SUFFIX=""
+  fi
+  PER_DEVICE_BATCH_SIZE=$((2048 * $GC_SCALE / $SEQ_LEN))
+  NUM_NODES=`echo "$SKYPILOT_NODE_IPS" | wc -l`
+  HOST_ADDR=`echo "$SKYPILOT_NODE_IPS" | head -n1`
+  
+  # Turn off wandb if no api key is provided
+  if [ "$WANDB_API_KEY" == "" ]; then
+    export WANDB_MODE="offline"
+  fi
+
+  # use LlamaDecoderLayer if using Llama model
+  if [[ $MODEL_BASE == *"llama"* ]]; then
+    LLAMA_LAYER="--fsdp_transformer_layer_cls_to_wrap LlamaDecoderLayer"
+  else
+    LLAMA_LAYER=""
+  fi
+
+  torchrun \
+    --nnodes=$NUM_NODES \
+    --nproc_per_node=$SKYPILOT_NUM_GPUS_PER_NODE \
+    --master_port=12375 \
+    --master_addr=$HOST_ADDR \
+    --node_rank=${SKYPILOT_NODE_RANK} \
+    $TRAIN_SCRIPT \
+    --model_name_or_path ${MODEL_BASE} \
+    --data_path /data/mydata.json \
+    --bf16 True \
+    --output_dir /artifacts/${MODEL_NAME} \
+    --num_train_epochs 3 \
+    --per_device_train_batch_size $PER_DEVICE_BATCH_SIZE \
+    --per_device_eval_batch_size $PER_DEVICE_BATCH_SIZE \
+    --gradient_accumulation_steps $((128 * 512 / $SEQ_LEN / $PER_DEVICE_BATCH_SIZE / $NUM_NODES / $SKYPILOT_NUM_GPUS_PER_NODE)) \
+    --evaluation_strategy "no" \
+    --save_strategy "steps" \
+    --save_steps 600 \
+    --save_total_limit 3 \
+    --learning_rate 2e-5 \
+    --weight_decay 0. \
+    --warmup_ratio 0.03 \
+    --lr_scheduler_type "cosine" \
+    --logging_steps 1 \
+    --fsdp "full_shard auto_wrap" \
+    ${LLAMA_LAYER} \
+    --tf32 True \
+    --model_max_length ${SEQ_LEN} \
+    --run_name $SKYPILOT_JOB_ID \
+    --gradient_checkpointing True \
+    --lazy_preprocess True
+
+  returncode=$?
+  # Sync any files not in the checkpoint-* folders
+  exit $returncode
+
+
+envs:
+  MODEL_BASE: meta-llama/Llama-2-7b-hf
+  SEQ_LEN: 2048
+  GC_SCALE: 4
+  USE_FLASH_ATTN: 0
+  WANDB_API_KEY: ""
+  MODEL_NAME: ""
+  HF_TOKEN: ""
+  MY_BUCKET: ""
+  BUCKET_TYPE: ""

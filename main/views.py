@@ -1,6 +1,6 @@
 from django.shortcuts import render,redirect
 from .forms import cloudForm,configForm
-from .sky_funcs import vmStartAzure
+from .sky_funcs import train
 from azure.cli.core import get_default_cli
 # Create your views here.
 
@@ -46,7 +46,6 @@ def cloudConfig(request , *args , **kwargs):
 
     if form.is_valid():
         inst = form.instance
-        vmStartAzure(acc_type=inst.acc_type , n_acc=inst.n_acc , n_cpus=inst.n_cpus , n_memory=inst.n_memory)
 
     form = configForm()
     return render(request , 'cloud_config_form.html' , {'form':form})

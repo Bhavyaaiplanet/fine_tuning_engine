@@ -1,10 +1,16 @@
 import sky 
 import os
 from sky.data.storage import Storage
+from fte.settings import MODEL_YAML_FILES
+from sky.task import Task
 
 def train_task(model_type , *args , **kwargs):
     if model_type=='llama':
         return LlamaLauncher(**kwargs).launch()
+    if model_type=='mistral':
+        pass
+    if model_type=='gemma':
+        pass
     
 
 class Launcher:
@@ -38,10 +44,10 @@ class LlamaLauncher(Launcher):
 
     @property
     def default_task(self):
-        pass
+        return Task.from_yaml(os.path.join(MODEL_YAML_FILES , 'llama_full.yml')) 
 
     def launch(self):
-        
+
         task = self.defaut_task
         task.name = self.name
         self.envs['MODEL_NAME'] = self.name
@@ -56,7 +62,9 @@ class LlamaLauncher(Launcher):
         task.update_storage_mounts({})
         resource = list(task.get_resouces())[0]
         resource._set_accelerators(self.accelerator , None)
-        resource._cloud = sky.colous.CLOUD_REGISTRY.from_str(self.cloud)
+        resource._cloud = sky.clouds.CLOUD_REGISTRY.from_str(self.cloud)
         resource._validate_and_set_region_zone(self.region , self.zone)
         task.set_resources(resource)
+
+
         return task
