@@ -45,7 +45,13 @@ def cloudConfig(request , *args , **kwargs):
     form = configForm(request.POST)
 
     if form.is_valid():
+        envs = {}
         inst = form.instance
+        envs['MY_BUCKET'] = inst.bucket_name
+        envs['BUCKET_TYPE'] = inst.bucket_type
+        envs['HF_TOKEN'] = inst.hf_token
+        envs['WANDB_API_KEY'] = inst.wandb_api_key
+        
 
     form = configForm()
     return render(request , 'cloud_config_form.html' , {'form':form})

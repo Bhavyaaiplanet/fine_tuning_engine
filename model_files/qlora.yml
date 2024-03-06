@@ -132,10 +132,10 @@ envs:
   PYTHON: "3.10"
   CUDA_MAJOR: "12"
   CUDA_MINOR: "1"
-  MODEL: huggyllama/llama-7B
+  MODEL_BASE: huggyllama/llama-7B
   MY_BUCKET: ""
   BUCKET_TYPE: ""
-
+  MODEL_NAME: ""
   #DATASET: alpaca
   #DATASET_FORMAT: alpaca
 

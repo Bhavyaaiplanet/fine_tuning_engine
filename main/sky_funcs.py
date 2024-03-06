@@ -16,6 +16,7 @@ def train(
         detach_setup,
         detach_run,
         no_setup,
+        train_type,
 ):
     
     task = train_task(
@@ -29,6 +30,7 @@ def train(
         envs=envs,
         region=region,
         zone=zone,
+        type_train=train_type,
     )
     
     sky.launch(

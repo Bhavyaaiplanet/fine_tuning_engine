@@ -4,9 +4,13 @@ from sky.data.storage import Storage
 from fte.settings import MODEL_YAML_FILES
 from sky.task import Task
 
-def train_task(model_type , *args , **kwargs):
+def train_task(model_type ,train_type, *args , **kwargs):
     if model_type=='llama':
-        return LlamaLauncher(**kwargs).launch()
+        if train_type == 'full_fine_tuning':
+            return LlamaLauncher(**kwargs).launch()
+        elif train_type == 'qlora':
+            return Qlora(**kwargs).launch()
+
     if model_type=='mistral':
         pass
     if model_type=='gemma':
@@ -68,7 +72,9 @@ class LlamaLauncher(Launcher):
 
 
         return task
-    
+
+# needs refractoring to prevent using same function(will do after initial tests)
+
 class Qlora(Launcher):
 
     @property
@@ -77,8 +83,14 @@ class Qlora(Launcher):
     
     def launch(self):
         task = self.default_task
-        #self.envs['MY_BUCKET'] = self.checkpoint_bucket
-        #self.envs['BUCKET_TYPE'] = self.checkpoint_store
+        self.envs['MODEL_NAME'] = self.name
+        self.envs['MY_BUCKET'] = self.checkpoint_bucket
+        self.envs['BUCKET_TYPE'] = self.checkpoint_store
+        task.update_envs(self.envs)
+        task.update_file_mounts({'/data/mydata.json':self.finetune_data})
+        storage = Storage(name=self.checkpoint_bucket)
+        storage.add_store(self.checkpoint_store)
+        task.update_storage_mounts({'/artifacts':storage})
         resources = list(task.get_resources())[0]
         task._set_accelerators(self.accelerator , None)
         resources._cloud = sky.clouds.CLOUD_REGISTRY.from_str(self.cloud)
