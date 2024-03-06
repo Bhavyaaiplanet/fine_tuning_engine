@@ -23,13 +23,15 @@ class Launcher:
       cloud,
       accelerator,
       envs,
+      name,
       region,
       zone,      
     ):
         
         self.finetune_data = finetune_data
         self.checkpoint_bucket = checkpoint_bucket
-        self.checkpoint_store = checkpoint_store    
+        self.checkpoint_store = checkpoint_store  
+        self.name = name  
         self.cloud = cloud  
         self.accelerator = accelerator
         self.region = region
@@ -51,15 +53,13 @@ class LlamaLauncher(Launcher):
         task = self.defaut_task
         task.name = self.name
         self.envs['MODEL_NAME'] = self.name
-
-
         self.envs['MY_BUCKET'] = self.checkpoint_bucket
         self.envs['BUCKET_TYPE'] = self.checkpoint_store
         task.update_envs(self.envs)
-        task.update_file_mounts({})
+        task.update_file_mounts({'/data/mydata.json':self.finetune_data})
         storage = Storage(name=self.checkpoint_bucket)
         storage.add_store(self.checkpoint_store)
-        task.update_storage_mounts({})
+        task.update_storage_mounts({'/artifacts':storage})
         resource = list(task.get_resouces())[0]
         resource._set_accelerators(self.accelerator , None)
         resource._cloud = sky.clouds.CLOUD_REGISTRY.from_str(self.cloud)
@@ -68,3 +68,21 @@ class LlamaLauncher(Launcher):
 
 
         return task
+    
+class Qlora(Launcher):
+
+    @property
+    def default_task(self):
+        return Task.from_yaml(os.path.join(MODEL_YAML_FILES , 'qlora.yml'))
+    
+    def launch(self):
+        task = self.default_task
+        #self.envs['MY_BUCKET'] = self.checkpoint_bucket
+        #self.envs['BUCKET_TYPE'] = self.checkpoint_store
+        resources = list(task.get_resources())[0]
+        task._set_accelerators(self.accelerator , None)
+        resources._cloud = sky.clouds.CLOUD_REGISTRY.from_str(self.cloud)
+        resources._validate_and_set_region_zone(self.region , self.zone)
+        task.set_resources(resources)
+
+        return Task

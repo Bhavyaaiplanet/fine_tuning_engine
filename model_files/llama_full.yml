@@ -116,6 +116,7 @@ run: |
 
 
 envs:
+  PYTHON: "3.10"
   MODEL_BASE: meta-llama/Llama-2-7b-hf
   SEQ_LEN: 2048
   GC_SCALE: 4

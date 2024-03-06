@@ -64,7 +64,7 @@ run: |
     --master_addr=$HOST_ADDR \
     --node_rank=$SKYPILOT_NODE_RANK \
     qlora.py \
-    --model_name_or_path $MODEL_NAME \
+    --model_name_or_path $MODEL \
     --output_dir $LOCAL_CHECKPOINTS \
     --logging_steps 10 \
     --save_strategy steps \
@@ -113,14 +113,6 @@ run: |
 
 
   returncode=$?
-  RSYNC=rsync
-  # Sync any files not in the checkpoint-* folders, if we are on gcp use
-  # gsutil so that we can sync to a gs bucket. You can replace this
-  # code with anything that puts the model somewhere useful and permanent.
-  if command -v gsutil &> /dev/null; then
-      RSYNC="gsutil -m rsync"
-  fi
-  $RSYNC -r $LOCAL_CHECKPOINTS/ $OUTPUT_RSYNC_TARGET/
   exit $returncode
 
 
@@ -128,7 +120,9 @@ envs:
   PYTHON: "3.10"
   CUDA_MAJOR: "12"
   CUDA_MINOR: "1"
-  MODEL_NAME: huggyllama/llama-7B
+  MODEL: huggyllama/llama-7B
+  #MY_BUCKET: ""
+  #BUCKET_TYPE: ""
 
   DATASET: alpaca
   DATASET_FORMAT: alpaca
