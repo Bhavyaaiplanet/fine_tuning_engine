@@ -2,13 +2,19 @@ name: qlora
 
 resources:
   # any ampere+ works well, but since this is an example,
-  accelerators: A100:4
+  accelerators: A100:2
 
-  #add this on gcp:
   disk_size: 100
-  disk_tier: 'high'
+  disk_tier: high
 
 num_nodes: 1
+
+
+file_mounts:
+  /artifacts:
+    name: ${MY_BUCKET} # Name of the bucket.
+    mode: MOUNT
+    store: ${BUCKET_TYPE} # s3, gcs, r2, ibm
 
 #file_mounts:
   # uplaod the latest training dataset if you have your own
@@ -33,7 +39,13 @@ setup: |
   pip install -U -r requirements.txt
 
   # periodic checkpoints go here
-  mkdir -p ~/local-checkpoints
+  #mkdir -p ~/local-checkpoints
+
+  if [[ "$HF_TOKEN" != "" ]];
+  then
+    pip install --upgrade huggingface_hub
+    huggingface-cli login --token $HF_TOKEN
+  fi
 
 run: |
 
@@ -65,7 +77,7 @@ run: |
     --node_rank=$SKYPILOT_NODE_RANK \
     qlora.py \
     --model_name_or_path $MODEL \
-    --output_dir $LOCAL_CHECKPOINTS \
+    --output_dir /artifacts/${MODEL_NAME} \
     --logging_steps 10 \
     --save_strategy steps \
     --data_seed 42 \
@@ -92,8 +104,8 @@ run: |
     --warmup_ratio 0.03 \
     --lr_scheduler_type constant \
     --gradient_checkpointing False \
-    --dataset $DATASET \
-    --dataset-format $DATASET_FORMAT \
+    --dataset /data/train.json \
+    --dataset-format ./train.json \
     --source_max_len 16 \
     --target_max_len 512 \
     --per_device_train_batch_size $PER_DEVICE_BATCH_SIZE \
@@ -121,13 +133,13 @@ envs:
   CUDA_MAJOR: "12"
   CUDA_MINOR: "1"
   MODEL: huggyllama/llama-7B
-  #MY_BUCKET: ""
-  #BUCKET_TYPE: ""
+  MY_BUCKET: ""
+  BUCKET_TYPE: ""
 
-  DATASET: alpaca
-  DATASET_FORMAT: alpaca
+  #DATASET: alpaca
+  #DATASET_FORMAT: alpaca
 
-  OUTPUT_RSYNC_TARGET: /outputs/qlora
+  #OUTPUT_RSYNC_TARGET: /outputs/qlora
 
   BITS: 4
   PER_DEVICE_BATCH_SIZE: 1
