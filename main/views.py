@@ -47,11 +47,23 @@ def cloudConfig(request , *args , **kwargs):
     if form.is_valid():
         envs = {}
         inst = form.instance
-        envs['MY_BUCKET'] = inst.bucket_name
-        envs['BUCKET_TYPE'] = inst.bucket_type
+        envs['MY_BUCKET'] = inst.checkpoint_bucket
+        envs['BUCKET_TYPE'] = inst.checkpoint_store
         envs['HF_TOKEN'] = inst.hf_token
         envs['WANDB_API_KEY'] = inst.wandb_api_key
+
+        train_launch = train(
+            model_type=inst.model_type , 
+            envs=envs , 
+            finetune_data=inst.finetune_data , 
+            train_type = inst.train_type,
+            accelerator=inst.accelerator,
+            region=inst.region,
+            zone=inst.zone,
+            )
         
+        if train_launch:
+            pass
 
     form = configForm()
     return render(request , 'cloud_config_form.html' , {'form':form})
