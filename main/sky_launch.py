@@ -42,7 +42,7 @@ class Launcher:
         self.zone = zone
         self.envs = {}
 
-        for k , v in envs:
+        for k , v in envs.items():
             self.envs[k] = v
 
         
@@ -54,7 +54,7 @@ class LlamaLauncher(Launcher):
 
     def launch(self):
 
-        task = self.defaut_task
+        task = self.default_task
         task.name = self.name
         self.envs['MODEL_NAME'] = self.name
         self.envs['MY_BUCKET'] = self.checkpoint_bucket
@@ -73,7 +73,7 @@ class LlamaLauncher(Launcher):
 
         return task
 
-# needs refractoring to prevent using same function(will do after initial tests)
+# functions look same but later more parameter will added in the qlora.launch like lora_r , lora_alpha and other hyperparameters
 
 class Qlora(Launcher):
 

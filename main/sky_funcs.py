@@ -7,16 +7,16 @@ def train(
         checkpoint_bucket,
         checkpoint_store,
         name,
-        cluster,
         cloud,
         envs,
         region,
         zone,
         accelerator,
-        detach_setup,
-        detach_run,
-        no_setup,
         train_type,
+        no_setup=False,
+        detach_run=False,
+        detach_setup=False,
+        cluster='mycluster',
 ):
     
     task = train_task(
@@ -30,7 +30,7 @@ def train(
         envs=envs,
         region=region,
         zone=zone,
-        type_train=train_type,
+        train_type=train_type,
     )
     
     sky.launch(
@@ -39,4 +39,5 @@ def train(
         detach_setup=detach_setup,
         detach_run=detach_run,
         no_setup=no_setup,
+        down=True,
     )

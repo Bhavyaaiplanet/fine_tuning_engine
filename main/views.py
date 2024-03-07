@@ -2,6 +2,7 @@ from django.shortcuts import render,redirect
 from .forms import cloudForm,configForm
 from .sky_funcs import train
 from azure.cli.core import get_default_cli
+from django.contrib import messages
 # Create your views here.
 
 class cloudLogin():
@@ -23,9 +24,10 @@ def cloudSelect(request, *args , **kwargs):
     
     if form.is_valid():
         inst = form.instance
+        global cloud_name
         cloud_name = inst.cloud_name
 
-        if cloud_name=='Azure':
+        if cloud_name=='azure':
             a_l= cloudLogin().azureLogin(app_id=inst.app_id , tenant_id=inst.tenant_id , password=inst.password)
             if a_l == 0:
                 return redirect('./config')
@@ -47,12 +49,12 @@ def cloudConfig(request , *args , **kwargs):
     if form.is_valid():
         envs = {}
         inst = form.instance
-        envs['MY_BUCKET'] = inst.checkpoint_bucket
-        envs['BUCKET_TYPE'] = inst.checkpoint_store
         envs['HF_TOKEN'] = inst.hf_token
         envs['WANDB_API_KEY'] = inst.wandb_api_key
 
         train_launch = train(
+            name=inst.name,
+            cloud=cloud_name,
             model_type=inst.model_type , 
             envs=envs , 
             finetune_data=inst.finetune_data , 
@@ -60,10 +62,16 @@ def cloudConfig(request , *args , **kwargs):
             accelerator=inst.accelerator,
             region=inst.region,
             zone=inst.zone,
+            checkpoint_bucket=inst.checkpoint_bucket,
+            checkpoint_store=inst.checkpoint_store
             )
         
-        if train_launch:
-            pass
+        if not train_launch:
+            messages.info(request , 'some error occured')
+            return render(request , 'cloud_config_form.html' , {'form':form})
+        else:
+            messages.info(request , 'task completed')
+            return render(request , 'cloud_config_form.html' , {'form':form})
 
     form = configForm()
     return render(request , 'cloud_config_form.html' , {'form':form})
